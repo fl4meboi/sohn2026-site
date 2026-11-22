@@ -1,5 +1,8 @@
 # 한국 중소벤처기업 정책자금연구소 웹사이트
 
+- **라이브 웹사이트**: https://fl4meboi.github.io/sohn2026-site/
+- **원본 네이버 블로그**: https://blog.naver.com/sohn2026
+
 네이버 블로그([blog.naver.com/sohn2026](https://blog.naver.com/sohn2026))의 모든 게시글과 카테고리를 체계적으로 정리해 보여주는 공식 웹사이트 및 **자동 동기화 시스템**입니다.
 
 외부 npm 패키지 설치 없이 순수 Node.js(>=18)만으로 동작합니다.
