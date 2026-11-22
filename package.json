@@ -1,0 +1,17 @@
+{
+  "name": "sohn2026-policy-fund-website",
+  "version": "1.0.0",
+  "description": "한국 중소벤처기업 정책자금연구소 공식 웹사이트 및 네이버 블로그 자동 동기화 시스템",
+  "type": "module",
+  "scripts": {
+    "sync": "node scripts/sync.mjs",
+    "sync:force": "node scripts/sync.mjs --force",
+    "build": "node scripts/build.mjs",
+    "sync-and-build": "node scripts/sync.mjs && node scripts/build.mjs",
+    "start": "node scripts/server.mjs",
+    "dev": "node scripts/server.mjs --no-initial-sync"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

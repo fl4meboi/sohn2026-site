@@ -1,0 +1,91 @@
+name: Sync Naver Blog & Deploy Website
+
+on:
+  schedule:
+    # Automatically check https://blog.naver.com/sohn2026 every Monday at 09:00 KST (00:00 UTC)
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+    inputs:
+      force_sync:
+        description: 'Force full re-sync and rebuild even if no changes are detected'
+        required: false
+        default: 'false'
+        type: boolean
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'data/sync-state.json'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages-sync'
+  cancel-in-progress: false
+
+jobs:
+  sync-and-build:
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.decide.outputs.should_deploy }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Sync latest posts & edits from Naver Blog (sohn2026)
+        id: sync
+        run: |
+          if [ "${{ inputs.force_sync }}" = "true" ]; then
+            node scripts/sync.mjs --force
+          else
+            node scripts/sync.mjs
+          fi
+
+      - name: Commit updated blog snapshot when changes are detected
+        if: steps.sync.outputs.has_changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(sync): update blog snapshot (+${{ steps.sync.outputs.added }} ~${{ steps.sync.outputs.updated }} -${{ steps.sync.outputs.removed }})"
+            git push
+          fi
+
+      - name: Decide whether to deploy
+        id: decide
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ] || [ "${{ steps.sync.outputs.has_changes }}" = "true" ]; then
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build static website
+        if: steps.decide.outputs.should_deploy == 'true'
+        run: node scripts/build.mjs
+
+      - name: Upload GitHub Pages artifact
+        if: steps.decide.outputs.should_deploy == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: sync-and-build
+    if: needs.sync-and-build.outputs.should_deploy == 'true'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
